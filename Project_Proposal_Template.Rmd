@@ -1,0 +1,38 @@
+---
+title: "Project Proposal"
+author: "STOR 320/520 Group 10"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+# Project Roles
+
+- **Creator:** Brian Houston
+- **Interpreter:** Yu Chen
+- **Orator 1:** Jason Hu
+- **Orator 2:** N/A
+- **Deliverer:** Eleana Janowski
+
+# Dataset
+
+[NFL Stadium Attendance](https://github.com/rfordatascience/tidytuesday/tree/master/data/2020/2020-02-04)
+
+# Initial Questions
+
+- **Question 1:** What is the relationship between attendance numbers and team standing? (More people watch teams that have a good chance of making playoffs?)
+- **Question 2:** Does the home team have advantage over away teams? (Score more points, turnovers, pt differential, etc.)
+- **Question 3:** As the season progresses, do games get closer or are there more distinct wins?
+- **Question 4:** What is the relationship between a team's last season performance and their next season performance?
+- **Question 5:** Does a team's defensive or offensive ranking matter more for their overall placement?
+- **Question 6:** How does division performance trend over time?
+- **Question 7:** Similarities and differences between Super Bowl winners (Is there a trend?)
+- **Question 8:** Does weather affect teams' performances?
+- **Question 9:** How does the distance teams have to travel affect their performance?
+- **Question 10:** What are good/bad match-ups for a team?
+- **Question 11:** How does the amount teams score trend over time? (Do teams score more than they did 20 years ago?)
+- **Question 12:** What team has the best chance of winning the Super Bowl in the coming years? (Modeling previous 20 years to predict future years)
