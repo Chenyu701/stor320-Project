@@ -1,0 +1,173 @@
+---
+title: "Exploratory Data Analysis"
+author: "STOR 320/520 Group PLACE_GROUP_NUMBER_HERE (Ex: STOR 320.406 Group 12)"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(geosphere)
+
+# Import Data Below
+attendance = read_csv("attendance.csv")
+games = read_csv("games.csv")
+standings = read_csv("standings.csv")
+locations = read_csv("locations.csv")
+divisions = read_csv("divisions.csv")
+```
+
+Division data:
+https://github.com/CriticalPathTraining/PowerBiPartyPack/blob/master/NFL/NFL%20Teams.csv
+
+Coordinate data:
+https://github.com/Sinbad311/CloudProject/blob/master/NFL%20Stadium%20Latitude%20and%20Longtitude.csv
+
+# Creator: Brian Houston
+
+### Q1: What is the relationship between a team's last season performance and their next season performance?
+
+```{r}
+standings2 = standings %>% select(team, year, wins) %>% arrange(team, year)
+for (i in 2:nrow(standings2)) {
+  if (standings2[i-1,1] == standings2[i,1]) {
+    standings2[i,"prev_wins"] = standings2[i-1,3]
+  }
+}
+
+standings3 = na.omit(standings2)
+
+ggplot(standings3, aes(x = prev_wins, y = wins, color)) +
+  geom_point() +
+  geom_jitter()
+```
+
+### Q2: How does the distance teams have to travel affect their performance?
+```{r}
+locations = locations %>% mutate(Team = ifelse(Team == "Forty-Niners", "49ers", Team))
+games2 = games %>% 
+  left_join(locations, by = c("home_team_name" = "Team")) %>% 
+  rename(home_latitude = latitude, home_longitude = longitude) %>%
+  left_join(locations, by = c("away_team_name" = "Team")) %>% 
+  rename(away_latitude = latitude, away_longitude = longitude) %>%
+  mutate(did_home_win = as.integer(winner == home_team))
+
+for (i in 1:nrow(games2)) {
+  games2[i, "distance"] = distHaversine(c(games2[i,]$home_longitude, games2[i,]$home_latitude),
+                                        c(games2[i,]$away_longitude, games2[i,]$away_latitude))
+}
+
+ggplot(games2, aes(x = distance, y = did_home_win)) +
+  geom_point() +
+  geom_jitter() +
+  geom_smooth(method="glm", method.args = list(family=binomial))
+```
+
+# Interpreter: FIRSTNAME LASTNAME
+
+### Q1: WRITE_QUESTION_HERE
+
+```{r}
+#
+```
+
+### Q2: WRITE_QUESTION_HERE
+
+```{r}
+#
+```
+
+# Orator: FIRSTNAME LASTNAME
+
+### Q1: WRITE_QUESTION_HERE
+
+```{r}
+#
+```
+
+### Q2: WRITE_QUESTION_HERE
+
+```{r}
+#
+```
+
+# Deliverer: FIRSTNAME LASTNAME
+
+### Q1: Does the home team have an advantage over away teams?
+
+```{r}
+games %>% mutate(did_home_win = winner == home_team) %>% 
+  group_by(year) %>%
+  summarize(n = n(), home_wins=sum(did_home_win),.groups = 'drop') %>%
+  mutate(home_win_perc = home_wins/n) %>%
+  ggplot(aes(x = year, y = home_win_perc)) +
+  geom_line()
+```
+
+### Q2: How does division performance trend over time?
+
+```{r}
+standings %>% left_join(divisions, by = c("team_name" = "Team")) %>%
+  group_by(Division, year) %>%
+  summarize(wins = sum(wins),.groups = 'drop') %>%
+  ggplot(aes(x = year, y = wins, group = factor(Division), color = factor(Division))) +
+  geom_line()
+```
+
+# Follow-up Questions
+
+### New Questions Based Off Initial Investigation
+
+- Q1: WRITE_QUESTION_HERE
+- Q2: WRITE_QUESTION_HERE
+- Q3: WRITE_QUESTION_HERE 
+- Q4: WRITE_QUESTION_HERE
+
+### Investigation of Follow-up Questions
+
+GIVE WHAT 2 QUESTIONS YOU ATTEMPTED TO INVESTIGATE FURTHER IN COMPLETE SENTENCES (*Example:* Our group decided to investigate Q2 and Q4 in further detail.)
+
+SHOW AT LEAST 2 TABLES OR FIGURES BELOW THAT EXPLORE ANSWERS FOR THE QUESTIONS YOU ARE INVESTIGATING FURTHER.
+
+```{r}
+games %>% filter(!is.na(strtoi(week))) %>%
+  mutate(weekn = as.double(week)) %>%
+  arrange(home_team, year, weekn) %>%
+  left_join(attendance, by = c("home_team_city" = "team", "weekn" = "week", "year" = "year")) %>%
+  group_by(home_team) %>% 
+  mutate(max_attendance = max(weekly_attendance)) %>%
+  ungroup() %>%
+  mutate(attendance_perc = weekly_attendance/max_attendance, did_home_win = as.integer(home_team == winner)) %>%
+  ggplot(aes(x = attendance_perc, y = did_home_win)) +
+  geom_point() +
+  geom_jitter() +
+  geom_smooth(method="glm", method.args = list(family=binomial))
+```
+
+```{r}
+#
+```
+
+# Summary
+
+GIVE A 2 PARAGRAPH SUMMARY. 
+
+PARAGRAPH 1 SHOULD DESCRIBE WHAT YOU LEARNED ABOUT YOUR DATA FROM INVESTIGATING THE INITIAL QUESTIONS. DID YOU FIND ANYTHING UNUSUAL IN YOUR DATA? DID ANYTHING SURPRISE YOU? WHICH OF THE INITIAL QUESTIONS WERE HELPFUL IN LEADING YOU TO MORE QUESTIONS?
+
+PARAGRAPH 2 SHOULD SUMMARIZE WHAT YOU LEARNED FROM INVESTIGATING THE FOLLOW-UP QUESTIONS. WHY ARE THESE FOLLOW-UP QUESTIONS INTERESTING FOR INVESTIGATION? DESCRIBE THE TABLES/FIGURES YOU USED TO EXPLORE ANSWERS TO THESE FOLLOW-UP QUESTIONS? WHAT DID YOU LEARN FROM THE TABLES/FIGURES REGARDING THE FOLLOW-UP QUESTIONS YOU PROPOSED?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
