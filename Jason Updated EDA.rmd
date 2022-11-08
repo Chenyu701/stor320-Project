@@ -1,0 +1,243 @@
+---
+title: "Exploratory Data Analysis"
+author: "STOR 320/520 Group PLACE_GROUP_NUMBER_HERE (Ex: STOR 320.406 Group 12)"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+
+# Import Data Below
+attendance <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-02-04/attendance.csv')
+standings <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-02-04/standings.csv')
+games <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-02-04/games.csv')
+```
+
+# Creator: FIRSTNAME LASTNAME
+
+### Q1: WRITE_QUESTION_HERE
+
+```{r}
+#
+```
+
+### Q2: WRITE_QUESTION_HERE
+
+```{r}
+#
+```
+
+# Interpreter: FIRSTNAME LASTNAME
+
+### Q1: WRITE_QUESTION_HERE
+
+```{r}
+#
+```
+
+### Q2: WRITE_QUESTION_HERE
+
+```{r}
+#
+```
+
+# Orator: Jason Hu
+
+### Q1: What is the relationship between attendance numbers and team standing (Jason)
+
+```{r}
+df <- dplyr::left_join(attendance,standings,by = c("year", "team_name", "team"))
+```
+
+
+```{r}
+df3 <- select(df, team,team_name,total,wins)
+group_by(df3,team_name) %>%
+  summarize(totalattendance=sum(total)/100000000,totalwins=sum(wins)) %>%
+  ggplot(aes(totalattendance,totalwins)) +
+  geom_point() +
+  geom_smooth(method='lm')
+```
+
+### Q2: How does the amount teams score trend over time? (Jason)
+
+```{r}
+# Check total points and if they went up over the years
+df2 <- select(df, team,team_name,year,points_for)
+df2[!duplicated(df2), ]
+
+group_by(df2,year) %>%
+  summarize(totalpoints=sum(points_for)) %>%
+  ggplot(aes(year,totalpoints)) +
+  geom_point()
+# Note that the houston Texans joined the NFL in 2002
+
+```
+```{r}
+# See if points scored change weekly
+df4 <- select(games, year,week,pts_win,pts_loss)
+games1 <- group_by(df4, year,week) %>%
+  filter(week!="ConfChamp" & week!="Division" & week!="SuperBowl" & week!="WildCard")
+
+# Check score change weekly for every year
+games1$week = as.double(games1$week)
+summarize(games1,weeklypoints=(sum(pts_win)+sum(pts_loss))) %>%
+  filter(year==2007) %>%
+  ggplot(aes(week,weeklypoints)) +
+  geom_point()
+  
+# Check score change weekly for average of all years
+games2 <- group_by(df4, week,year) %>%
+  filter(week!="ConfChamp" & week!="Division" & week!="SuperBowl" & week!="WildCard")
+games2$week = as.double(games2$week)
+
+summarize(games2,weeklypoints=(sum(pts_win)+sum(pts_loss))) %>%
+  summarize(weeklypoints=mean(weeklypoints),.groups="drop_last") %>%
+  ggplot(aes(week,weeklypoints)) +
+  geom_point()
+  
+```
+
+# Deliverer: Eleanna
+
+### Q1: Does the home team have advantage over away teams? (Eleanna)
+
+```{r}
+home <- select(games,year,home_team,away_team,winner)
+home$homewin <- home$home_team==home$winner
+
+home %>% group_by(year,homewin) %>% summarize(n=n()) %>%
+ggplot(aes(x=year, y=n, fill=homewin)) +
+  geom_bar(position="dodge",stat="identity")
+```
+
+### Q2: WRITE_QUESTION_HERE
+
+```{r}
+#
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+* Follow Up Questions 2 and 3 Below
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Follow-up Questions
+
+### New Questions Based Off Initial Investigation
+
+- Q1: WRITE_QUESTION_HERE
+- Q2: Yearly attendance affected by previous years performance trends?
+- Q3: How have team popularities changed over time?
+- Q4: WRITE_QUESTION_HERE
+
+
+
+
+### Investigation of Follow-up Questions
+
+GIVE WHAT 2 QUESTIONS YOU ATTEMPTED TO INVESTIGATE FURTHER IN COMPLETE SENTENCES (*Example:* Our group decided to investigate Q2 and Q4 in further detail.)
+
+SHOW AT LEAST 2 TABLES OR FIGURES BELOW THAT EXPLORE ANSWERS FOR THE QUESTIONS YOU ARE INVESTIGATING FURTHER.
+
+### Investigating Question 2
+
+
+```{r}
+# Does yearly attendance change based on winning or losing?
+yeardf <- select(df,-week,-weekly_attendance)
+yeardf <- yeardf[!duplicated(yeardf), ]
+
+par(mfrow=c(2,2))
+
+filter(yeardf,team_name=="Chargers") %>%
+  ggplot(aes(x=year, y=total, fill=wins)) + 
+  geom_bar(position="dodge",stat="identity")
+
+filter(yeardf,team_name=="Chiefs") %>%
+  ggplot(aes(x=year, y=total, fill=wins)) + 
+  geom_bar(position="dodge",stat="identity")
+
+filter(yeardf,team_name=="Cardinals") %>%
+  ggplot(aes(x=year, y=total, fill=wins)) + 
+  geom_bar(position="dodge",stat="identity")
+```
+
+# Investigating Question 3
+```{r}
+# What teams have the largest home attendance?
+#Yearly
+select(newdf,year,home_team_name,away_team,game_attendance) %>% group_by(year,home_team_name) %>% summarize(yearly_attendance=sum(game_attendance)) %>% 
+  filter(year=="2018") %>%
+  ggplot(aes(x=home_team_name, y=yearly_attendance,fill=home_team_name)) + 
+  geom_bar(position="dodge",stat="identity") +
+  theme(axis.text.x = element_text(angle = 270, vjust = 0.5, hjust=1))
+
+#Total
+select(newdf,year,home_team_name,away_team,game_attendance) %>% group_by(home_team_name) %>% summarize(total_attendance=sum(game_attendance)) %>% 
+  ggplot(aes(x=home_team_name, y=total_attendance,fill=home_team_name)) + 
+  geom_bar(position="dodge",stat="identity") +
+  theme(axis.text.x = element_text(angle = 270, vjust = 0.5, hjust=1))
+```
+
+
+
+
+# Summary
+
+GIVE A 2 PARAGRAPH SUMMARY. 
+
+PARAGRAPH 1 SHOULD DESCRIBE WHAT YOU LEARNED ABOUT YOUR DATA FROM INVESTIGATING THE INITIAL QUESTIONS. DID YOU FIND ANYTHING UNUSUAL IN YOUR DATA? DID ANYTHING SURPRISE YOU? WHICH OF THE INITIAL QUESTIONS WERE HELPFUL IN LEADING YOU TO MORE QUESTIONS?
+
+### Findings from first initial Questions:
+  - Home teams win a noticeable amount more than away teams.
+  - Teams have overall scored more points as years pass
+  - Total attendance has a positive correlation with total wins for a team's overall lifespan
+
+PARAGRAPH 2 SHOULD SUMMARIZE WHAT YOU LEARNED FROM INVESTIGATING THE FOLLOW-UP QUESTIONS. WHY ARE THESE FOLLOW-UP QUESTIONS INTERESTING FOR INVESTIGATION? DESCRIBE THE TABLES/FIGURES YOU USED TO EXPLORE ANSWERS TO THESE FOLLOW-UP QUESTIONS? WHAT DID YOU LEARN FROM THE TABLES/FIGURES REGARDING THE FOLLOW-UP QUESTIONS YOU PROPOSED?
+
+### Findings from follow-up questions:
+  - Small yearly trends where if a team did poorly total attendance lowers next year and vice versa
+
+
+
+
+
+
+
+
+
+
+
+
+
