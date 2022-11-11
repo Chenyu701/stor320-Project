@@ -1,0 +1,535 @@
+---
+title: "Exploratory Data Analysis"
+author: "STOR 320/520 Group PLACE_GROUP_NUMBER_HERE (Ex: STOR 320.406 Group 12)"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(geosphere)
+library(tibble)
+# Import Data Below
+# read_csv()
+```
+
+# Creator: Brian Houston
+```{r}
+locations<-readr::read_csv("https://raw.githubusercontent.com/littlecapybaraa/stor320-Project/main/locations.csv")
+divisions<-readr::read_csv("https://raw.githubusercontent.com/littlecapybaraa/stor320-Project/main/divisions.csv")
+standings <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-02-04/standings.csv')
+games <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-02-04/games.csv')
+```
+
+### Q1: What is the relationship between a team's last season performance and their next season performance?
+
+##A: There is a linear realtion ship between last season performance and next season performance 
+
+```{r}
+standings2 = standings %>% select(team, year, wins) %>% arrange(team, year)
+for (i in 2:nrow(standings2)) {
+  if (standings2[i-1,1] == standings2[i,1]) {
+    standings2[i,"prev_wins"] = standings2[i-1,3]
+  }
+}
+standings3 = na.omit(standings2)
+ggplot(standings3, aes(x = prev_wins, y = wins, color)) +
+  geom_point() +
+  geom_jitter()+geom_smooth(method="lm")
+```
+
+### Q2: How does the distance teams have to travel affect their performance?
+
+##A: The distance do affect teams performance, when they travel longer distance, there is a higher chance the hometeam wins 
+
+```{r}
+locations = locations %>% mutate(Team = ifelse(Team == "Forty-Niners", "49ers", Team))
+games2 = games %>% 
+  left_join(locations, by = c("home_team_name" = "Team")) %>% 
+  rename(home_latitude = latitude, home_longitude = longitude) %>%
+  left_join(locations, by = c("away_team_name" = "Team")) %>% 
+  rename(away_latitude = latitude, away_longitude = longitude) %>%
+  mutate(did_home_win = as.integer(winner == home_team))
+for (i in 1:nrow(games2)) {
+  games2[i, "distance"] = distHaversine(c(games2[i,]$home_longitude, games2[i,]$home_latitude),
+                                        c(games2[i,]$away_longitude, games2[i,]$away_latitude))
+}
+ggplot(games2, aes(x = distance, y = did_home_win)) +
+  geom_point() +
+  geom_jitter() +
+  geom_smooth(method="glm", method.args = list(family=binomial))
+```
+
+# Interpreter: Yu Chen
+```{r}
+attendance <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-02-04/attendance.csv')
+standings <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-02-04/standings.csv')
+games <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-02-04/games.csv')
+library(tidyverse)
+
+```
+### Q1: Does a team's defensive or offensive ranking matter more for their overall placement?
+
+#higher offfensve and defensive ranking leads to more wins  
+
+#higher defensive points leads to more wins 
+
+#in general the more defensive points a team have, the lesser the wins they will get, because they spend more time on defending the offensive form their opponents.
+
+#the higher the defensive ranking the lesser the points for defensive performance 
+
+#comapre to the quality of thier opponents, the quality of the team itself matters more in total wins 
+
+```{r}
+ggplot(standings)+geom_point(aes(x=wins,y=points_for))+
+  geom_smooth(aes(x=wins,y=points_for),method=lm)
+
+ggplot(standings)+geom_point(aes(x=wins,y=points_against))+
+  geom_smooth(aes(x=wins,y=points_against),method=lm)
+
+ggplot(standings)+geom_point(aes(x=points_for,y=points_against))+
+  geom_smooth(aes(x=points_for,y=points_against),method=lm)
+
+
+
+```
+
+#higher defensive points leads to more wins 
+```{r}
+standings %>%
+  #group_by(wins) %>%
+  
+  ggplot(aes(x=points_for,y=points_against,fill=wins)) +
+    geom_tile() +#geom_point(size = 2)+
+  scale_fill_gradientn(colors=c("black","lightskyblue","white"))+
+    
+theme_dark()
+    
+#in general the more defensive points a team have, the lesser the wins they will get, because they spend more time on defending the offensive form their opponents. 
+```
+#higher offfensve and defensive ranking leads to more wins  
+```{r}
+standings %>%
+  #group_by(wins) %>%
+  
+  ggplot(aes(x=offensive_ranking,y=defensive_ranking,fill=wins)) +
+    geom_tile() +#geom_point(size = 2)+
+  scale_fill_gradientn(colors=c("black","lightskyblue","white"))+
+    
+theme_dark()
+
+
+```
+#the higher the defensive ranking the lesser the points for defensive performance
+```{r}
+standings %>%
+  #group_by(wins) %>%
+  
+  ggplot() + geom_point(aes(x=points_against,y=defensive_ranking)) #the higher the defensive ranking the lesser the points for defensive performance 
+    
+```
+
+
+#comapre to the quality of thier opponents, the quality of the team itself matters more in total wins 
+```{r}
+standings %>%ggplot() + geom_point(aes(x=wins,y=strength_of_schedule))
+
+standings %>%
+  #group_by(wins) %>%
+  
+  ggplot(aes(x=simple_rating,y=strength_of_schedule,fill=wins)) +
+    geom_tile() +#geom_point(size = 2)+
+  scale_fill_gradientn(colors=c("black","lightskyblue","white"))+
+    
+theme_dark()
+```
+#Point differential (points_for - points_against) larger difference leads to more wins 
+```{r}
+ggplot(standings)+geom_point(aes(x=wins,y=points_differential))+
+  geom_smooth(aes(x=wins,y=points_differential),method=lm)
+```
+
+### Q2: How well can a model predict whether a team made the playoffs using the team's regular season statistics and what statistics are most important in the model?
+
+# Not finished 
+
+# almost finished the training dataset
+#selection model need to be determined
+```{r}
+head(attendance)
+head(standings)
+head(games)
+```
+
+```{r}
+homegames=games%>%filter(year==2001)%>%count(home_team)%>%arrange(desc(n))
+
+awaygames=games%>%filter(year==2001)%>%count(away_team)%>%arrange(desc(n))
+
+```
+
+```{r}
+attendance2=attendance%>%select("team",team_name,year,total,home,away)
+yearlyatt=attendance2[!duplicated(attendance2), ]
+```
+
+```{r}
+comb12=yearlyatt%>%left_join(y=standings,by =c("year","team","team_name")) # combine df standings and df attendance, only yearly data 
+comb12$teamname1=paste(comb12$team,sep = " ",comb12$team_name) # combine team_name and team to a new colunm 
+comb12["winsathome"]=0 #Create a new colunm for home wins 
+comb12
+```
+
+```{r}
+
+comb12
+
+```
+
+## Q3 what teams win more when they are at home 
+
+##on average,teams win more when they are at home, home wins contributed 60% percent of their total wins. 
+
+```{r}
+#games[games$year=="2000","home_team"][1,]==comb12[comb12$year=="2000","teamname1"][17,]
+#as.character(games[games$year=="2000","home_team"][1,])
+#as.character(comb12[comb12$year=="2000","teamname1"][17,])
+#comb12[comb12$year=="2000","teamname1"][17,]
+#comb12$teamname1=paste(comb12$team,sep = " ",comb12$team_name)
+#comb12[comb12$year==2000&comb12$team_name==games[games$year==2000,"home_team"][1,],]
+#comb12[comb12[comb12$year=="2000","teamname1"][,1]==as.character(games[games$year=="2000","home_team"][1,])&comb12$year=="2000",]
+#p2=as.character(games[games$year=="2000","home_team"][1,])
+#comb12[comb12$teamname1==as.character(games[games$year=="2000","home_team"][1,])&comb12$year=="2000",]
+#comb12[comb12$year=="2000","teamname1"][,1]==as.character(games[games$year=="2000","home_team"][1,])
+#comb12$teamname1==games[games$year=="2000","home_team"][1,]
+#games[games$year=="2000","home_team"][1,]
+#comb12$teamname1
+#comb12[comb12$teamname1==as.character(games[games$year==2000,"home_team"][1,])&comb12$year==2000,"winsathome"]=1+comb12[comb12$teamname1==as.character(games[games$year==2000,"home_team"][1,])&comb12$year==2000,"winsathome"]
+#comb12[comb12$teamname1==as.character(games[games$year==2000,"home_team"][1,])&comb12$year==2000,"winsathome"]
+```
+
+ 
+```{r}
+#get the home wins for each team in each year and add them into the combined data 
+for (j in 2000:2019){
+for (i in 1:nrow(games[games$year==j,])){ if (games[games$year==j,"home_team"][i,]==games[games$year==j,"winner"][i,]){ comb12[comb12$teamname1==as.character(games[games$year==j,"home_team"][i,])&comb12$year==j,"winsathome"]=comb12[comb12$teamname1==as.character(games[games$year==j,"home_team"][i,])&comb12$year==j,"winsathome"]+1
+}}}
+
+
+comb12
+
+sum(comb12["winsathome"])
+
+```
+
+```{r}
+which(comb12$wins==0)  
+comb12[c(265,550),] 
+```
+
+```{r}
+#remove the NaN rows and get the winsashome ratio, there a two teams that didn't win once in some year
+mean(comb12$winsathome[-c(265,550)]/comb12$wins[-c(265,550)]) #average of the winsathome ratio 
+
+# on average,teams win more when they are at home, home wins contribute 60% percent of their total wins 
+games%>%count(home_team==winner)
+
+```
+#split data into train and test 
+```{r}
+train_data=comb12[-(comb12$year=="2019"),]
+train_data
+test_data=
+```
+
+```{r}
+library(bestglm)
+library(gmodels)
+library(MASS)
+Full = glm(factor(sb_winner)~ .,family = binomial, data = train_data)
+MSE = (summary(Full)$sigma)^2
+none = glm(factor(sb_winner)~1, family = binomial,data=comb12)
+
+e1.step.model.AIC <- step(none,scope = list(upper=Full), direction="both",test="Chisq", trace = F)
+summary(e1.step.model.AIC)
+
+plot(e1.step.model.AIC)
+```
+
+
+#still finding the largest homewin team 
+```{r}
+total_wins_at_home=tapply(comb12$winsathome, comb12$teamname1, FUN=sum)
+
+total_wins_at_home=as.data.frame(total_wins_at_home)
+
+total_wins_at_home
+
+total_wins_at_home <- tibble::rownames_to_column(total_wins_at_home, "teams")
+total_wins_at_home
+
+total_wins_at_home%>%ggplot(aes(x=teams,y=total_wins_at_home))+
+                              geom_bar(position="dodge",stat="identity",fill="#99CCFF") +
+  theme(axis.text.x = element_text(angle = 270, vjust = 0.5, hjust=1))      #which team has the most home wins 
+
+
+
+```
+```{r}
+total_wins=tapply(comb12$wins, comb12$teamname1, FUN=sum)
+
+total_wins=as.data.frame(total_wins)
+
+total_wins_HW=cbind(total_wins,total_wins_at_home)
+
+total_wins_HW=cbind(total_wins_HW,total_wins_HW$total_wins_at_home/total_wins_HW$total_wins)
+
+colnames(total_wins_HW) <-c("wins_total", "teamnames2","HWins","winRatio")
+
+
+mean(total_wins_HW$winRatio)##HW/TTW rario sum of all the years 
+
+total_wins_HW%>%ggplot(aes(x=teamnames2,y=winRatio,Fill=HWins))+
+                              geom_bar(position="dodge",stat="identity",fill="#009999") +
+  theme(axis.text.x = element_text(angle = 270, vjust = 0.5, hjust=1))+scale_fill_viridis_c() #which team has the highest hw ratio 
+  
+
+
+max_ind=which.max(total_wins_HW$winRatio)
+
+total_wins_HW[max_ind,c("teamnames2","winRatio")]
+
+total_wins_HW[total_wins_HW$teamnames2=="New England Patriots","winRatio"]
+```
+# the Minnesota Vikings has the highest home win ratio with 0.6606061
+
+#the new england priots have the most win and home wins since 2000, with a ratio at 0.6582278  
+```{r}
+
+total_wins_HW
+total_wins_HW%>%ggplot()+geom_bar(aes(x=teamnames2,y=wins_total),fill = "#FFCC00",position="dodge",stat="identity") + geom_bar(aes(x=teamnames2,y=HWins),position="dodge",stat="identity",fill="#CC3333")+
+  theme(axis.text.x = element_text(angle = 270, vjust = 0.5, hjust=1))  
+
+
+```
+
+```{r}
+total_wins_HW%>%ggplot(aes(x=winRatio))+
+                              geom_boxplot() 
+
+
+
+
+#win rario with dots/    win ratio within each years for each team 
+```
+#relation between ttlwins and HWW ratio
+```{r}
+total_wins_HW %>%
+  #group_by(wins) %>%
+  
+  ggplot(aes(x=winRatio,y=wins_total)) + geom_point()+geom_smooth()
+```
+
+
+# Orator: Jason Hu
+
+### Q1:  What is the relationship between attendance numbers and team standing 
+
+##A: Higher attendance leads more wins 
+```{r}
+df <- dplyr::left_join(attendance,standings,by = c("year", "team_name", "team"))
+
+df3 <- select(df, team,team_name,total,wins)
+group_by(df3,team_name) %>%
+  summarize(totalattendance=sum(total)/100000000,totalwins=sum(wins)) %>%
+  ggplot(aes(totalattendance,totalwins)) +
+  geom_point() +
+  geom_smooth(method='lm')
+```
+
+### Q2: How does the amount teams score trend over time? 
+#A: The total points gets higher over years 
+
+#And average points tend to become higher at least several weeks in a year 
+```{r}
+# Check total points and if they went up over the years
+df2 <- select(df, team,team_name,year,points_for)
+df2[!duplicated(df2), ]
+group_by(df2,year) %>%
+  summarize(totalpoints=sum(points_for)) %>%
+  ggplot(aes(year,totalpoints)) +
+  geom_point()
+# Note that the houston Texans joined the NFL in 2002
+```
+```{r}
+# See if points scored change weekly
+df4 <- select(games, year,week,pts_win,pts_loss)
+games1 <- group_by(df4, year,week) %>%
+  filter(week!="ConfChamp" & week!="Division" & week!="SuperBowl" & week!="WildCard")
+# Check score change weekly for every year
+games1$week = as.double(games1$week)
+summarize(games1,weeklypoints=(sum(pts_win)+sum(pts_loss))) %>%
+  filter(year==2007) %>%
+  ggplot(aes(week,weeklypoints)) +
+  geom_point()
+  
+# Check score change weekly for average of all years
+games2 <- group_by(df4, week,year) %>%
+  filter(week!="ConfChamp" & week!="Division" & week!="SuperBowl" & week!="WildCard")
+games2$week = as.double(games2$week)
+summarize(games2,weeklypoints=(sum(pts_win)+sum(pts_loss))) %>%
+  summarize(weeklypoints=mean(weeklypoints),.groups="drop_last") %>%
+  ggplot(aes(week,weeklypoints)) +
+  geom_point()
+```
+###Q3 Does the home team have advantage over away teams?
+
+
+##A yes 
+```{r}
+home <- select(games,year,home_team,away_team,winner)
+home$homewin <- home$home_team==home$winner
+home %>% group_by(year,homewin) %>% summarize(n=n()) %>%
+ggplot(aes(x=year, y=n, fill=homewin)) +
+  geom_bar(position="dodge",stat="identity")
+```
+same as the queation below
+
+# Deliverer: Eleanna Janowski
+
+### Q1: Does the home team have an advantage over away teams?
+
+##A: Overall I think they have an a advantage over away team 
+```{r}
+games %>% mutate(did_home_win = winner == home_team) %>% 
+  group_by(year) %>%
+  summarize(n = n(), home_wins=sum(did_home_win),.groups = 'drop') %>%
+  mutate(home_win_perc = home_wins/n) %>%
+  ggplot(aes(x = year, y = home_win_perc)) +
+  geom_line()
+```
+
+### Q2: How does division performance trend over time?
+
+#A their performance tend to be closer in resent years 
+
+```{r}
+standings %>% left_join(divisions, by = c("team_name" = "Team")) %>%
+  group_by(Division, year) %>%
+  summarize(wins = sum(wins),.groups = 'drop') %>%
+  ggplot(aes(x = year, y = wins, group = factor(Division), color = factor(Division))) +
+  geom_line()
+  
+```
+```{r}
+standings %>% left_join(divisions, by = c("team_name" = "Team")) %>%
+  group_by(Division, year) %>%
+  summarize(wins = sum(wins),.groups = 'drop') %>%
+  ggplot(aes(x = year, y = wins, group = factor(Division), color = factor(Division))) +
+  geom_smooth(method="lm",se = FALSE)
+```
+
+
+# Follow-up Questions
+
+### New Questions Based Off Initial Investigation
+
+- Q1: what teams win more when they are at home 
+- Q2: Are there trends in Team popularity based on performance through the years?
+- Q3: How has home attendance for each team changed over time? 
+- Q4: does team attendance turned down as they have a bad record? 
+
+### Investigation of Follow-up Questions
+
+GIVE WHAT 2 QUESTIONS YOU ATTEMPTED TO INVESTIGATE FURTHER IN COMPLETE SENTENCES (*Example:* Our group decided to investigate Q2 and Q4 in further detail.)
+
+SHOW AT LEAST 2 TABLES OR FIGURES BELOW THAT EXPLORE ANSWERS FOR THE QUESTIONS YOU ARE INVESTIGATING FURTHER.
+
+
+##Are there trends in Team popularity based on performance through the years?
+
+#A:more home team win leads to more attendance 
+```{r}
+games %>% filter(!is.na(strtoi(week))) %>%
+  mutate(weekn = as.double(week)) %>%
+  arrange(home_team, year, weekn) %>%
+  left_join(attendance, by = c("home_team_city" = "team", "weekn" = "week", "year" = "year")) %>%
+  group_by(home_team) %>% 
+  mutate(max_attendance = max(weekly_attendance)) %>%
+  ungroup() %>%
+  mutate(attendance_perc = weekly_attendance/max_attendance, did_home_win = as.integer(home_team == winner)) %>%
+  ggplot(aes(x = attendance_perc, y = did_home_win)) +
+  geom_point() +
+  geom_jitter() +
+  geom_smooth(method="glm", method.args = list(family=binomial))
+```
+voiline
+# Does yearly attendance change based on winning or losing?
+
+#A can't sey whether there is a realationship
+
+```{r}
+yeardf <- select(df,-week,-weekly_attendance)
+yeardf <- yeardf[!duplicated(yeardf), ]
+par(mfrow=c(2,2))
+filter(yeardf,team_name=="Chargers") %>%
+  ggplot(aes(x=year, y=total, fill=wins)) + 
+  geom_bar(position="dodge",stat="identity")
+filter(yeardf,team_name=="Chiefs") %>%
+  ggplot(aes(x=year, y=total, fill=wins)) + 
+  geom_bar(position="dodge",stat="identity")
+filter(yeardf,team_name=="Cardinals") %>%
+  ggplot(aes(x=year, y=total, fill=wins)) + 
+  geom_bar(position="dodge",stat="identity")
+```
+plot it seprately
+#Q What teams have the largest home attendance?
+
+# there might be some errors in the code
+
+#Redskins has the highest total attendence
+```{r}
+games$week <- as.double(games$week)
+newdf <- left_join(games,attendance,by=c("year","week","home_team_name"="team_name")) %>% select(-team,-home,-total,-away) %>% rename(game_attendance=weekly_attendance)
+newdf <- newdf[!is.na(newdf$game_attendance),]
+```
+
+```{r}
+
+select(newdf,year,home_team_name,away_team,game_attendance) %>% group_by(year,home_team_name) %>% summarize(yearly_attendance=sum(game_attendance)) %>% 
+  filter(year=="2018") %>%
+  ggplot(aes(x=home_team_name, y=yearly_attendance,fill=home_team_name)) + 
+  geom_bar(position="dodge",stat="identity") +
+  theme(axis.text.x = element_text(angle = 270, vjust = 0.5, hjust=1))
+#Total
+select(newdf,year,home_team_name,away_team,game_attendance) %>% group_by(home_team_name) %>% summarize(total_attendance=sum(game_attendance)) %>% 
+  ggplot(aes(x=home_team_name, y=total_attendance,fill=home_team_name)) + 
+  geom_bar(position="dodge",stat="identity") +
+  theme(axis.text.x = element_text(angle = 270, vjust = 0.5, hjust=1))
+```
+first 10- last 10 from highest to low 
+# Summary
+
+### Findings from first initial Questions:
+  - Home teams win a noticeable amount more than away teams.
+  - Teams have overall scored more points as years pass
+  - Total attendance has a positive correlation with total wins for a team's overall lifespan
+
+PARAGRAPH 1 
+
+PARAGRAPH 2 SHOULD SUMMARIZE WHAT YOU LEARNED FROM INVESTIGATING THE FOLLOW-UP QUESTIONS. WHY ARE THESE FOLLOW-UP QUESTIONS INTERESTING FOR INVESTIGATION? DESCRIBE THE TABLES/FIGURES YOU USED TO EXPLORE ANSWERS TO THESE FOLLOW-UP QUESTIONS? WHAT DID YOU LEARN FROM THE TABLES/FIGURES REGARDING THE FOLLOW-UP QUESTIONS YOU PROPOSED?
+
+### Findings from follow-up questions:
+  - Small yearly trends where if a team did poorly total attendance lowers next year and vice versa
+
+
+
+
+
+
+
+
+
+
+
